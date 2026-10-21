@@ -36,7 +36,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Replace this with your authorized developer account email.
+// Authorized developer account email.
 // Never put a password directly in client-side JavaScript.
 const DEV_MODE_EMAILS = ["liamhowley42@gmail.com"];
 const DEV_LOG_COLLECTION = "dev_mode_logs";
@@ -757,13 +757,19 @@ document
       });
     }
 
+    // FIX: Only full runs starting at 0% count toward overall best.
     let highestBest =
       targetLevel.initialBest !== undefined
         ? targetLevel.initialBest
         : 0;
 
     updatedRuns.forEach(run => {
-      if (run.end > highestBest) highestBest = run.end;
+      const runStart = Number(run.start) || 0;
+      const runEnd = Number(run.end) || 0;
+
+      if (runStart === 0 && runEnd > highestBest) {
+        highestBest = runEnd;
+      }
     });
 
     try {
@@ -807,13 +813,19 @@ async function deleteRun(levelId, runIndex) {
 
   updatedRuns.splice(runIndex, 1);
 
+  // FIX: Recalculate overall best using full runs only.
   let highestBest =
     targetLevel.initialBest !== undefined
       ? targetLevel.initialBest
       : 0;
 
   updatedRuns.forEach(run => {
-    if (run.end > highestBest) highestBest = run.end;
+    const runStart = Number(run.start) || 0;
+    const runEnd = Number(run.end) || 0;
+
+    if (runStart === 0 && runEnd > highestBest) {
+      highestBest = runEnd;
+    }
   });
 
   try {

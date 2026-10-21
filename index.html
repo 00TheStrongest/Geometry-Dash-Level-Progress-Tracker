@@ -26,7 +26,7 @@
     </div>
 
     <div id="levels-grid" class="levels-grid">
-      <!-- Level cards will render here dynamically -->
+      <!-- Level cards render here dynamically -->
     </div>
   </main>
 
@@ -42,10 +42,14 @@
         <label>Creator</label>
         <input type="text" id="level-creator" placeholder="e.g. Riot" />
 
-        <label>Image URL (Thumbnail)</label>
-        <input type="url" id="level-image" placeholder="https://example.com/image.jpg" />
+        <label>Thumbnail / Cover Image</label>
+        <div class="image-input-group">
+          <input type="url" id="level-image-url" placeholder="Paste Image URL..." />
+          <div class="divider-text">OR</div>
+          <input type="file" id="level-image-file" accept="image/*" />
+        </div>
 
-        <label>Current Overall Best (%)</label>
+        <label>Initial Overall Best (%)</label>
         <input type="number" id="level-best" min="0" max="100" value="0" required />
 
         <button type="submit" class="btn btn-success">Save Level</button>
@@ -53,15 +57,15 @@
     </div>
   </div>
 
-  <!-- Run Log Modal -->
+  <!-- Run Log / Edit Modal -->
   <div id="run-modal" class="modal hidden">
     <div class="modal-content">
       <span class="close-btn" id="close-run-modal">&times;</span>
       <h3 id="run-modal-title">Log Run</h3>
       
       <div class="run-mode-toggle">
-        <button id="mode-full-btn" class="btn btn-tab active">Full Run (0% - X%)</button>
-        <button id="mode-segment-btn" class="btn btn-tab">Segment Practice (X% - Y%)</button>
+        <button id="mode-full-btn" class="btn btn-tab active" type="button">Full Run (0% - X%)</button>
+        <button id="mode-segment-btn" class="btn btn-tab" type="button">Segment Practice (X% - Y%)</button>
       </div>
 
       <form id="run-form">
@@ -76,7 +80,7 @@
         <label>Run Note / Milestone Goal (Optional)</label>
         <input type="text" id="run-note" placeholder="e.g. New record! or Practice 44-83" />
 
-        <button type="submit" class="btn btn-primary">Log Run</button>
+        <button type="submit" id="run-submit-btn" class="btn btn-primary">Save Run</button>
       </form>
     </div>
   </div>

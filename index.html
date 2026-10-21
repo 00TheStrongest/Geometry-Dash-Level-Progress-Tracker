@@ -13,9 +13,13 @@
       <div class="gd-icon"></div>
       <h1>GD LEVEL PROGRESS TRACKER</h1>
     </div>
-    <div class="auth-status">
-      <span id="user-display">Guest Mode</span>
-      <button id="auth-btn" class="btn btn-primary">Sign In / Sign Up</button>
+    <div class="header-right">
+      <button id="open-idea-btn" class="btn btn-secondary">💡 Suggest Feature</button>
+      <button id="open-bug-btn" class="btn btn-danger-outline">🐛 Report Bug</button>
+      <div class="auth-status">
+        <span id="user-display">Guest Mode</span>
+        <button id="auth-btn" class="btn btn-primary">Sign In / Sign Up</button>
+      </div>
     </div>
   </header>
 
@@ -26,7 +30,7 @@
     </div>
 
     <div id="levels-grid" class="levels-grid">
-      <!-- Level cards render here dynamically -->
+      <!-- Level cards render dynamically -->
     </div>
   </main>
 
@@ -81,6 +85,42 @@
         <input type="text" id="run-note" placeholder="e.g. New record! or Practice 44-83" />
 
         <button type="submit" id="run-submit-btn" class="btn btn-primary">Save Run</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Feature Idea Modal -->
+  <div id="idea-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-idea-modal">&times;</span>
+      <h3>💡 Submit Feature Idea</h3>
+      <p class="modal-subtitle">Have an awesome feature idea? Let us know!</p>
+      <form id="idea-form">
+        <label>Idea Title</label>
+        <input type="text" id="idea-title" required placeholder="e.g. Add chart for best percentages over time" />
+
+        <label>Description</label>
+        <textarea id="idea-description" required rows="4" placeholder="Explain how you would like this feature to work..."></textarea>
+
+        <button type="submit" class="btn btn-secondary">Submit Idea</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bug Report Modal -->
+  <div id="bug-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-bug-modal">&times;</span>
+      <h3>🐛 Report a Bug</h3>
+      <p class="modal-subtitle">Found something broken? Give us details so we can fix it.</p>
+      <form id="bug-form">
+        <label>Bug Summary</label>
+        <input type="text" id="bug-title" required placeholder="e.g. Runs not saving in practice mode" />
+
+        <label>Steps to Reproduce / Details</label>
+        <textarea id="bug-description" required rows="4" placeholder="What were you doing when the bug occurred?"></textarea>
+
+        <button type="submit" class="btn btn-danger">Submit Bug Report</button>
       </form>
     </div>
   </div>

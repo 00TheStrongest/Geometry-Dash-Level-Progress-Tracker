@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -23,11 +23,14 @@ let selectedLevelId = null;
 let editingRunIndex = null;
 let isSegmentMode = false;
 
-// Elements
+// UI Elements
 const levelsGrid = document.getElementById("levels-grid");
 const levelModal = document.getElementById("level-modal");
 const runModal = document.getElementById("run-modal");
 const authModal = document.getElementById("auth-modal");
+const ideaModal = document.getElementById("idea-modal");
+const bugModal = document.getElementById("bug-modal");
+
 const userDisplay = document.getElementById("user-display");
 const authBtn = document.getElementById("auth-btn");
 const runModalTitle = document.getElementById("run-modal-title");
@@ -37,6 +40,27 @@ document.getElementById("add-level-btn").addEventListener("click", () => levelMo
 document.getElementById("close-level-modal").addEventListener("click", () => levelModal.classList.add("hidden"));
 document.getElementById("close-run-modal").addEventListener("click", () => runModal.classList.add("hidden"));
 document.getElementById("close-auth-modal").addEventListener("click", () => authModal.classList.add("hidden"));
+document.getElementById("close-idea-modal").addEventListener("click", () => ideaModal.classList.add("hidden"));
+document.getElementById("close-bug-modal").addEventListener("click", () => bugModal.classList.add("hidden"));
+
+// Feature Ideas & Bug Modals Trigger (Require Account)
+document.getElementById("open-idea-btn").addEventListener("click", () => {
+  if (!currentUser) {
+    alert("Please sign in or create an account to submit update ideas!");
+    authModal.classList.remove("hidden");
+    return;
+  }
+  ideaModal.classList.remove("hidden");
+});
+
+document.getElementById("open-bug-btn").addEventListener("click", () => {
+  if (!currentUser) {
+    alert("Please sign in or create an account to report bugs!");
+    authModal.classList.remove("hidden");
+    return;
+  }
+  bugModal.classList.remove("hidden");
+});
 
 authBtn.addEventListener("click", () => {
   if (currentUser) {
@@ -110,6 +134,54 @@ function getBase64(file) {
   });
 }
 
+// Submit Feature Idea Form
+document.getElementById("idea-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return;
+
+  const title = document.getElementById("idea-title").value;
+  const description = document.getElementById("idea-description").value;
+
+  try {
+    await addDoc(collection(db, "update_ideas"), {
+      uid: currentUser.uid,
+      userEmail: currentUser.email,
+      title: title,
+      description: description,
+      createdAt: serverTimestamp()
+    });
+    alert("Thank you! Your feature idea has been submitted.");
+    ideaModal.classList.add("hidden");
+    e.target.reset();
+  } catch (err) {
+    alert("Failed to submit idea: " + err.message);
+  }
+});
+
+// Submit Bug Report Form
+document.getElementById("bug-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) return;
+
+  const title = document.getElementById("bug-title").value;
+  const description = document.getElementById("bug-description").value;
+
+  try {
+    await addDoc(collection(db, "bug_reports"), {
+      uid: currentUser.uid,
+      userEmail: currentUser.email,
+      title: title,
+      description: description,
+      createdAt: serverTimestamp()
+    });
+    alert("Thank you! Your bug report has been submitted.");
+    bugModal.classList.add("hidden");
+    e.target.reset();
+  } catch (err) {
+    alert("Failed to submit bug report: " + err.message);
+  }
+});
+
 // Add Level Form
 document.getElementById("level-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -130,7 +202,7 @@ document.getElementById("level-form").addEventListener("submit", async (e) => {
     name: document.getElementById("level-name").value,
     creator: document.getElementById("level-creator").value || "Unknown",
     image: finalImage,
-    initialBest: initialBest, // Keep track of starting best
+    initialBest: initialBest,
     best: initialBest,
     runs: []
   };
@@ -176,7 +248,6 @@ document.getElementById("run-form").addEventListener("submit", async (e) => {
     });
   }
 
-  // Properly compute best: check initialBest and all remaining runs
   let highestBest = targetLevel.initialBest !== undefined ? targetLevel.initialBest : 0;
   updatedRuns.forEach(r => {
     if (r.end > highestBest) highestBest = r.end;
@@ -200,7 +271,7 @@ document.getElementById("run-form").addEventListener("submit", async (e) => {
   editingRunIndex = null;
 });
 
-// Delete Run Handler (Fixes bug where 100% stays forever)
+// Delete Run Handler
 async function deleteRun(levelId, runIndex) {
   const targetLevel = activeLevels.find(l => l.id === levelId);
   if (!targetLevel) return;
@@ -208,7 +279,6 @@ async function deleteRun(levelId, runIndex) {
   let updatedRuns = [...(targetLevel.runs || [])];
   updatedRuns.splice(runIndex, 1);
 
-  // Recalculate true best from initialBest + remaining runs
   let highestBest = targetLevel.initialBest !== undefined ? targetLevel.initialBest : 0;
   updatedRuns.forEach(r => {
     if (r.end > highestBest) highestBest = r.end;

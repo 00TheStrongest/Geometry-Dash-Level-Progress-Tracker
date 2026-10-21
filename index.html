@@ -3,143 +3,421 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#10111b" />
+  <meta name="description" content="Track Geometry Dash level progress, personal bests, and practice runs." />
+
   <title>Geometry Dash Level Progress Tracker</title>
+
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
 </head>
+
 <body>
   <header>
     <div class="logo-container">
-      <div class="gd-icon"></div>
+      <div class="gd-icon" aria-hidden="true"></div>
       <h1>GD LEVEL PROGRESS TRACKER</h1>
     </div>
+
     <div class="header-right">
-      <button id="open-idea-btn" class="btn btn-secondary">💡 Suggest Feature</button>
-      <button id="open-bug-btn" class="btn btn-danger-outline">🐛 Report Bug</button>
+      <button id="open-idea-btn" class="btn btn-secondary" type="button">
+        💡 Suggest Feature
+      </button>
+
+      <button id="open-bug-btn" class="btn btn-danger-outline" type="button">
+        🐛 Report Bug
+      </button>
+
       <div class="auth-status">
         <span id="user-display">Guest Mode</span>
-        <button id="auth-btn" class="btn btn-primary">Sign In / Sign Up</button>
+        <button id="auth-btn" class="btn btn-primary" type="button">
+          Sign In / Sign Up
+        </button>
       </div>
+
+      <!-- app.js adds the Dev Mode button here -->
     </div>
   </header>
 
   <main class="container">
     <div class="top-controls">
       <h2>My Level Tracker</h2>
-      <button id="add-level-btn" class="btn btn-success">+ Add New Level</button>
+
+      <button id="add-level-btn" class="btn btn-success" type="button">
+        + Add New Level
+      </button>
     </div>
 
-    <div id="levels-grid" class="levels-grid">
+    <div
+      id="levels-grid"
+      class="levels-grid"
+      aria-live="polite"
+      aria-label="Your Geometry Dash levels"
+    >
       <!-- Level cards render dynamically -->
     </div>
   </main>
 
-  <!-- Level Modal -->
-  <div id="level-modal" class="modal hidden">
-    <div class="modal-content">
-      <span class="close-btn" id="close-level-modal">&times;</span>
-      <h3 id="modal-title">Add New Level</h3>
-      <form id="level-form">
-        <label>Level Name</label>
-        <input type="text" id="level-name" required placeholder="e.g. Bloodbath" />
-
-        <label>Creator</label>
-        <input type="text" id="level-creator" placeholder="e.g. Riot" />
-
-        <label>Thumbnail / Cover Image</label>
-        <div class="image-input-group">
-          <input type="url" id="level-image-url" placeholder="Paste Image URL..." />
-          <div class="divider-text">OR</div>
-          <input type="file" id="level-image-file" accept="image/*" />
+  <!-- Dev Mode Activity Panel -->
+  <!-- Hidden until app.js opens Dev Mode -->
+  <section
+    id="dev-mode-panel"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="dev-mode-title"
+    aria-hidden="true"
+  >
+    <div class="modal-content dev-mode-content">
+      <div class="dev-mode-header">
+        <div>
+          <h3 id="dev-mode-title">🛠️ Dev Mode</h3>
+          <p class="modal-subtitle">
+            Activity log for Dev Mode access.
+          </p>
         </div>
 
-        <label>Initial Overall Best (%)</label>
-        <input type="number" id="level-best" min="0" max="100" value="0" required />
+        <button
+          id="dev-mode-exit-btn"
+          class="btn btn-danger"
+          type="button"
+        >
+          Exit Dev Mode
+        </button>
+      </div>
 
-        <button type="submit" class="btn btn-success">Save Level</button>
+      <div id="dev-mode-log-status" role="status" aria-live="polite">
+        Loading activity log...
+      </div>
+
+      <div class="dev-mode-log-wrapper">
+        <table class="dev-mode-log-table">
+          <thead>
+            <tr>
+              <th scope="col">Event</th>
+              <th scope="col">Account</th>
+              <th scope="col">Time</th>
+              <th scope="col">Session Duration</th>
+            </tr>
+          </thead>
+
+          <tbody id="dev-mode-log-rows">
+            <tr>
+              <td colspan="4">Loading activity...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="modal-subtitle">
+        This log records Dev Mode access events. It is not a list of
+        feature ideas or bug reports.
+      </p>
+    </div>
+  </section>
+
+  <!-- Level Modal -->
+  <div
+    id="level-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    aria-hidden="true"
+  >
+    <div class="modal-content">
+      <button
+        class="close-btn"
+        id="close-level-modal"
+        type="button"
+        aria-label="Close level form"
+      >&times;</button>
+
+      <h3 id="modal-title">Add New Level</h3>
+
+      <form id="level-form">
+        <label for="level-name">Level Name</label>
+        <input
+          type="text"
+          id="level-name"
+          required
+          maxlength="120"
+          placeholder="e.g. Bloodbath"
+        />
+
+        <label for="level-creator">Creator</label>
+        <input
+          type="text"
+          id="level-creator"
+          maxlength="120"
+          placeholder="e.g. Riot"
+        />
+
+        <label for="level-image-url">Thumbnail / Cover Image</label>
+        <div class="image-input-group">
+          <input
+            type="url"
+            id="level-image-url"
+            placeholder="Paste Image URL..."
+          />
+
+          <div class="divider-text">OR</div>
+
+          <input
+            type="file"
+            id="level-image-file"
+            accept="image/*"
+          />
+        </div>
+
+        <label for="level-best">Initial Overall Best (%)</label>
+        <input
+          type="number"
+          id="level-best"
+          min="0"
+          max="100"
+          value="0"
+          required
+        />
+
+        <button type="submit" class="btn btn-success">
+          Save Level
+        </button>
       </form>
     </div>
   </div>
 
   <!-- Run Log / Edit Modal -->
-  <div id="run-modal" class="modal hidden">
+  <div
+    id="run-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="run-modal-title"
+    aria-hidden="true"
+  >
     <div class="modal-content">
-      <span class="close-btn" id="close-run-modal">&times;</span>
+      <button
+        class="close-btn"
+        id="close-run-modal"
+        type="button"
+        aria-label="Close run form"
+      >&times;</button>
+
       <h3 id="run-modal-title">Log Run</h3>
-      
+
       <div class="run-mode-toggle">
-        <button id="mode-full-btn" class="btn btn-tab active" type="button">Full Run (0% - X%)</button>
-        <button id="mode-segment-btn" class="btn btn-tab" type="button">Segment Practice (X% - Y%)</button>
+        <button
+          id="mode-full-btn"
+          class="btn btn-tab active"
+          type="button"
+        >
+          Full Run (0% - X%)
+        </button>
+
+        <button
+          id="mode-segment-btn"
+          class="btn btn-tab"
+          type="button"
+        >
+          Segment Practice (X% - Y%)
+        </button>
       </div>
 
       <form id="run-form">
         <div id="start-percent-group" class="hidden">
-          <label>Start Percentage (%)</label>
-          <input type="number" id="run-start" min="0" max="100" value="0" />
+          <label for="run-start">Start Percentage (%)</label>
+          <input
+            type="number"
+            id="run-start"
+            min="0"
+            max="100"
+            value="0"
+          />
         </div>
 
-        <label id="end-percent-label">End Percentage / Best Run (%)</label>
-        <input type="number" id="run-end" min="0" max="100" required placeholder="e.g. 61 or 83" />
+        <label for="run-end" id="end-percent-label">
+          End Percentage / Best Run (%)
+        </label>
 
-        <label>Run Note / Milestone Goal (Optional)</label>
-        <input type="text" id="run-note" placeholder="e.g. New record! or Practice 44-83" />
+        <input
+          type="number"
+          id="run-end"
+          min="0"
+          max="100"
+          required
+          placeholder="e.g. 61 or 83"
+        />
 
-        <button type="submit" id="run-submit-btn" class="btn btn-primary">Save Run</button>
+        <label for="run-note">Run Note / Milestone Goal (Optional)</label>
+        <input
+          type="text"
+          id="run-note"
+          maxlength="300"
+          placeholder="e.g. New record! or Practice 44-83"
+        />
+
+        <button
+          type="submit"
+          id="run-submit-btn"
+          class="btn btn-primary"
+        >
+          Save Run
+        </button>
       </form>
     </div>
   </div>
 
   <!-- Feature Idea Modal -->
-  <div id="idea-modal" class="modal hidden">
+  <div
+    id="idea-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="idea-modal-title"
+    aria-hidden="true"
+  >
     <div class="modal-content">
-      <span class="close-btn" id="close-idea-modal">&times;</span>
-      <h3>💡 Submit Feature Idea</h3>
-      <p class="modal-subtitle">Have an awesome feature idea? Let us know!</p>
+      <button
+        class="close-btn"
+        id="close-idea-modal"
+        type="button"
+        aria-label="Close feature idea form"
+      >&times;</button>
+
+      <h3 id="idea-modal-title">💡 Submit Feature Idea</h3>
+      <p class="modal-subtitle">
+        Have an awesome feature idea? Let us know!
+      </p>
+
       <form id="idea-form">
-        <label>Idea Title</label>
-        <input type="text" id="idea-title" required placeholder="e.g. Add chart for best percentages over time" />
+        <label for="idea-title">Idea Title</label>
+        <input
+          type="text"
+          id="idea-title"
+          required
+          maxlength="120"
+          placeholder="e.g. Add chart for best percentages over time"
+        />
 
-        <label>Description</label>
-        <textarea id="idea-description" required rows="4" placeholder="Explain how you would like this feature to work..."></textarea>
+        <label for="idea-description">Description</label>
+        <textarea
+          id="idea-description"
+          required
+          maxlength="2000"
+          rows="4"
+          placeholder="Explain how you would like this feature to work..."
+        ></textarea>
 
-        <button type="submit" class="btn btn-secondary">Submit Idea</button>
+        <button type="submit" class="btn btn-secondary">
+          Submit Idea
+        </button>
       </form>
     </div>
   </div>
 
   <!-- Bug Report Modal -->
-  <div id="bug-modal" class="modal hidden">
+  <div
+    id="bug-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="bug-modal-title"
+    aria-hidden="true"
+  >
     <div class="modal-content">
-      <span class="close-btn" id="close-bug-modal">&times;</span>
-      <h3>🐛 Report a Bug</h3>
-      <p class="modal-subtitle">Found something broken? Give us details so we can fix it.</p>
+      <button
+        class="close-btn"
+        id="close-bug-modal"
+        type="button"
+        aria-label="Close bug report form"
+      >&times;</button>
+
+      <h3 id="bug-modal-title">🐛 Report a Bug</h3>
+      <p class="modal-subtitle">
+        Found something broken? Give us details so we can fix it.
+      </p>
+
       <form id="bug-form">
-        <label>Bug Summary</label>
-        <input type="text" id="bug-title" required placeholder="e.g. Runs not saving in practice mode" />
+        <label for="bug-title">Bug Summary</label>
+        <input
+          type="text"
+          id="bug-title"
+          required
+          maxlength="120"
+          placeholder="e.g. Runs not saving in practice mode"
+        />
 
-        <label>Steps to Reproduce / Details</label>
-        <textarea id="bug-description" required rows="4" placeholder="What were you doing when the bug occurred?"></textarea>
+        <label for="bug-description">Steps to Reproduce / Details</label>
+        <textarea
+          id="bug-description"
+          required
+          maxlength="2000"
+          rows="4"
+          placeholder="What were you doing when the bug occurred?"
+        ></textarea>
 
-        <button type="submit" class="btn btn-danger">Submit Bug Report</button>
+        <button type="submit" class="btn btn-danger">
+          Submit Bug Report
+        </button>
       </form>
     </div>
   </div>
 
   <!-- Auth Modal -->
-  <div id="auth-modal" class="modal hidden">
+  <div
+    id="auth-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="auth-modal-title"
+    aria-hidden="true"
+  >
     <div class="modal-content">
-      <span class="close-btn" id="close-auth-modal">&times;</span>
-      <h3>Account Login / Sign Up</h3>
-      <form id="auth-form">
-        <label>Email</label>
-        <input type="email" id="auth-email" required placeholder="your@email.com" />
+      <button
+        class="close-btn"
+        id="close-auth-modal"
+        type="button"
+        aria-label="Close login form"
+      >&times;</button>
 
-        <label>Password</label>
-        <input type="password" id="auth-password" required placeholder="••••••••" />
+      <h3 id="auth-modal-title">Account Login / Sign Up</h3>
+
+      <form id="auth-form">
+        <label for="auth-email">Email</label>
+        <input
+          type="email"
+          id="auth-email"
+          required
+          autocomplete="email"
+          placeholder="your@email.com"
+        />
+
+        <label for="auth-password">Password</label>
+        <input
+          type="password"
+          id="auth-password"
+          required
+          autocomplete="current-password"
+          placeholder="••••••••"
+        />
 
         <div class="auth-actions">
-          <button type="button" id="login-btn" class="btn btn-primary">Log In</button>
-          <button type="button" id="signup-btn" class="btn btn-secondary">Sign Up</button>
+          <button
+            type="button"
+            id="login-btn"
+            class="btn btn-primary"
+          >
+            Log In
+          </button>
+
+          <button
+            type="button"
+            id="signup-btn"
+            class="btn btn-secondary"
+          >
+            Sign Up
+          </button>
         </div>
       </form>
     </div>

@@ -1,8 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, where, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Your web app's Firebase configuration
+// Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBw9RPgaP8lpc9B8NcW202Mj3CK9kAX2Iw",
   authDomain: "gdlpt-5dd88.firebaseapp.com",
@@ -13,7 +13,6 @@ const firebaseConfig = {
   measurementId: "G-2WV37JVBNW"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -21,17 +20,19 @@ const db = getFirestore(app);
 let currentUser = null;
 let activeLevels = [];
 let selectedLevelId = null;
+let editingRunIndex = null;
 let isSegmentMode = false;
 
-// UI Elements
+// Elements
 const levelsGrid = document.getElementById("levels-grid");
 const levelModal = document.getElementById("level-modal");
 const runModal = document.getElementById("run-modal");
 const authModal = document.getElementById("auth-modal");
 const userDisplay = document.getElementById("user-display");
 const authBtn = document.getElementById("auth-btn");
+const runModalTitle = document.getElementById("run-modal-title");
 
-// Event Listeners for Modals
+// Modals Setup
 document.getElementById("add-level-btn").addEventListener("click", () => levelModal.classList.remove("hidden"));
 document.getElementById("close-level-modal").addEventListener("click", () => levelModal.classList.add("hidden"));
 document.getElementById("close-run-modal").addEventListener("click", () => runModal.classList.add("hidden"));
@@ -100,13 +101,34 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// Level Management
+// Helper: Local File Reader (Base64)
+function getBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+// Add Level Form
 document.getElementById("level-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  
+  const imageUrlInput = document.getElementById("level-image-url").value;
+  const imageFileInput = document.getElementById("level-image-file").files[0];
+  let finalImage = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600";
+
+  if (imageFileInput) {
+    finalImage = await getBase64(imageFileInput);
+  } else if (imageUrlInput) {
+    finalImage = imageUrlInput;
+  }
+
   const newLevel = {
     name: document.getElementById("level-name").value,
     creator: document.getElementById("level-creator").value || "Unknown",
-    image: document.getElementById("level-image").value || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600",
+    image: finalImage,
     best: parseInt(document.getElementById("level-best").value) || 0,
     runs: []
   };
@@ -124,37 +146,116 @@ document.getElementById("level-form").addEventListener("submit", async (e) => {
   e.target.reset();
 });
 
-// Run Logging
+// Add / Edit Run Form
 document.getElementById("run-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const start = isSegmentMode ? parseInt(document.getElementById("run-start").value) || 0 : 0;
   const end = parseInt(document.getElementById("run-end").value) || 0;
   const note = document.getElementById("run-note").value;
 
-  const runData = { start, end, note, date: new Date().toLocaleDateString() };
+  const targetLevel = activeLevels.find(l => l.id === selectedLevelId);
+  if (!targetLevel) return;
+
+  let updatedRuns = [...(targetLevel.runs || [])];
+
+  if (editingRunIndex !== null) {
+    // Editing existing run
+    updatedRuns[editingRunIndex] = {
+      ...updatedRuns[editingRunIndex],
+      start,
+      end,
+      note
+    };
+  } else {
+    // Adding new run
+    updatedRuns.push({
+      id: Date.now().toString(),
+      start,
+      end,
+      note,
+      date: new Date().toLocaleDateString()
+    });
+  }
+
+  // Calculate new overall best percentage dynamically
+  let newBest = targetLevel.initialBest || targetLevel.best || 0;
+  updatedRuns.forEach(r => {
+    if (r.end > newBest) newBest = r.end;
+  });
 
   if (currentUser) {
     const levelRef = doc(db, "levels", selectedLevelId);
-    const targetLevel = activeLevels.find(l => l.id === selectedLevelId);
-    const newBest = Math.max(targetLevel.best, end);
     await updateDoc(levelRef, {
-      runs: arrayUnion(runData),
+      runs: updatedRuns,
       best: newBest
     });
   } else {
-    const local = JSON.parse(localStorage.getItem("gd_levels") || "[]");
-    const lvl = local.find(l => l.id === selectedLevelId);
-    if (lvl) {
-      lvl.runs.push(runData);
-      lvl.best = Math.max(lvl.best, end);
-      localStorage.setItem("gd_levels", JSON.stringify(local));
-      loadLocalLevels();
-    }
+    targetLevel.runs = updatedRuns;
+    targetLevel.best = newBest;
+    saveLocalLevels(activeLevels);
+    renderLevels(activeLevels);
   }
 
   runModal.classList.add("hidden");
   e.target.reset();
+  editingRunIndex = null;
 });
+
+// Delete Run Handler
+async function deleteRun(levelId, runIndex) {
+  const targetLevel = activeLevels.find(l => l.id === levelId);
+  if (!targetLevel) return;
+
+  let updatedRuns = [...(targetLevel.runs || [])];
+  updatedRuns.splice(runIndex, 1);
+
+  // Recalculate best after deletion
+  let newBest = targetLevel.initialBest || 0;
+  updatedRuns.forEach(r => {
+    if (r.end > newBest) newBest = r.end;
+  });
+
+  if (currentUser) {
+    const levelRef = doc(db, "levels", levelId);
+    await updateDoc(levelRef, {
+      runs: updatedRuns,
+      best: newBest
+    });
+  } else {
+    targetLevel.runs = updatedRuns;
+    targetLevel.best = newBest;
+    saveLocalLevels(activeLevels);
+    renderLevels(activeLevels);
+  }
+}
+
+// Open Modal for Editing Run
+function openEditRunModal(levelId, runIndex) {
+  selectedLevelId = levelId;
+  editingRunIndex = runIndex;
+
+  const targetLevel = activeLevels.find(l => l.id === levelId);
+  const run = targetLevel.runs[runIndex];
+
+  runModalTitle.textContent = "Edit Run";
+  document.getElementById("run-start").value = run.start || 0;
+  document.getElementById("run-end").value = run.end || 0;
+  document.getElementById("run-note").value = run.note || "";
+
+  if (run.start > 0) {
+    isSegmentMode = true;
+    modeSegmentBtn.classList.add("active");
+    modeFullBtn.classList.remove("active");
+    startPercentGroup.classList.remove("hidden");
+  } else {
+    isSegmentMode = false;
+    modeFullBtn.classList.add("active");
+    modeSegmentBtn.classList.remove("active");
+    startPercentGroup.classList.add("hidden");
+  }
+
+  runModal.classList.remove("hidden");
+}
 
 function listenToLevels(uid) {
   const q = query(collection(db, "levels"), where("uid", "==", uid));
@@ -169,18 +270,42 @@ function loadLocalLevels() {
   renderLevels(activeLevels);
 }
 
+function saveLocalLevels(levels) {
+  localStorage.setItem("gd_levels", JSON.stringify(levels));
+}
+
 function renderLevels(levels) {
   levelsGrid.innerHTML = "";
   levels.forEach(lvl => {
     const card = document.createElement("div");
     card.className = "level-card";
-    
-    const runsListHtml = lvl.runs.map(r => `
-      <div class="run-item">
-        <span class="run-tag">${r.start > 0 ? `${r.start}\% -${r.end}%` : `${r.end}%`}</span>
-        <span>${r.note ? r.note : r.date}</span>
-      </div>
-    `).reverse().join("");
+
+    const runsListContainer = document.createElement("div");
+    runsListContainer.className = "runs-list";
+
+    if (!lvl.runs || lvl.runs.length === 0) {
+      runsListContainer.innerHTML = `<p style="color:#64748b;font-size:0.8rem">No runs logged yet</p>`;
+    } else {
+      lvl.runs.forEach((r, idx) => {
+        const runItem = document.createElement("div");
+        runItem.className = "run-item";
+        runItem.innerHTML = `
+          <div class="run-info">
+            <span class="run-tag">${r.start > 0 ? `${r.start}\% -${r.end}%` : `${r.end}%`}</span>
+            <span class="run-note-text">${r.note ? r.note : r.date}</span>
+          </div>
+          <div class="run-actions">
+            <button class="btn-icon edit-run-btn" title="Edit Run">✏️</button>
+            <button class="btn-icon delete-run-btn" title="Delete Run">🗑️</button>
+          </div>
+        `;
+
+        runItem.querySelector(".edit-run-btn").addEventListener("click", () => openEditRunModal(lvl.id, idx));
+        runItem.querySelector(".delete-run-btn").addEventListener("click", () => deleteRun(lvl.id, idx));
+
+        runsListContainer.appendChild(runItem);
+      });
+    }
 
     card.innerHTML = `
       <div class="card-img-container">
@@ -190,18 +315,24 @@ function renderLevels(levels) {
       <div class="card-body">
         <h3 class="card-title">${lvl.name}</h3>
         <p class="card-creator">By ${lvl.creator}</p>
-        <div class="runs-list">
-          ${runsListHtml || '<p style="color:#64748b;font-size:0.8rem">No runs logged yet</p>'}
-        </div>
-        <button class="btn btn-primary log-run-btn" data-id="${lvl.id}">+ Log Run</button>
       </div>
     `;
 
-    card.querySelector(".log-run-btn").addEventListener("click", () => {
+    const cardBody = card.querySelector(".card-body");
+    cardBody.appendChild(runsListContainer);
+
+    const logBtn = document.createElement("button");
+    logBtn.className = "btn btn-primary log-run-btn";
+    logBtn.textContent = "+ Log Run";
+    logBtn.addEventListener("click", () => {
       selectedLevelId = lvl.id;
+      editingRunIndex = null;
+      runModalTitle.textContent = "Log Run";
+      document.getElementById("run-form").reset();
       runModal.classList.remove("hidden");
     });
 
+    cardBody.appendChild(logBtn);
     levelsGrid.appendChild(card);
   });
 }

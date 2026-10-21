@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -101,7 +101,6 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// Helper: Local File Reader (Base64)
 function getBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -125,11 +124,14 @@ document.getElementById("level-form").addEventListener("submit", async (e) => {
     finalImage = imageUrlInput;
   }
 
+  const initialBest = parseInt(document.getElementById("level-best").value) || 0;
+
   const newLevel = {
     name: document.getElementById("level-name").value,
     creator: document.getElementById("level-creator").value || "Unknown",
     image: finalImage,
-    best: parseInt(document.getElementById("level-best").value) || 0,
+    initialBest: initialBest, // Keep track of starting best
+    best: initialBest,
     runs: []
   };
 
@@ -159,7 +161,6 @@ document.getElementById("run-form").addEventListener("submit", async (e) => {
   let updatedRuns = [...(targetLevel.runs || [])];
 
   if (editingRunIndex !== null) {
-    // Editing existing run
     updatedRuns[editingRunIndex] = {
       ...updatedRuns[editingRunIndex],
       start,
@@ -167,9 +168,7 @@ document.getElementById("run-form").addEventListener("submit", async (e) => {
       note
     };
   } else {
-    // Adding new run
     updatedRuns.push({
-      id: Date.now().toString(),
       start,
       end,
       note,
@@ -177,21 +176,21 @@ document.getElementById("run-form").addEventListener("submit", async (e) => {
     });
   }
 
-  // Calculate new overall best percentage dynamically
-  let newBest = targetLevel.initialBest || targetLevel.best || 0;
+  // Properly compute best: check initialBest and all remaining runs
+  let highestBest = targetLevel.initialBest !== undefined ? targetLevel.initialBest : 0;
   updatedRuns.forEach(r => {
-    if (r.end > newBest) newBest = r.end;
+    if (r.end > highestBest) highestBest = r.end;
   });
 
   if (currentUser) {
     const levelRef = doc(db, "levels", selectedLevelId);
     await updateDoc(levelRef, {
       runs: updatedRuns,
-      best: newBest
+      best: highestBest
     });
   } else {
     targetLevel.runs = updatedRuns;
-    targetLevel.best = newBest;
+    targetLevel.best = highestBest;
     saveLocalLevels(activeLevels);
     renderLevels(activeLevels);
   }
@@ -201,7 +200,7 @@ document.getElementById("run-form").addEventListener("submit", async (e) => {
   editingRunIndex = null;
 });
 
-// Delete Run Handler
+// Delete Run Handler (Fixes bug where 100% stays forever)
 async function deleteRun(levelId, runIndex) {
   const targetLevel = activeLevels.find(l => l.id === levelId);
   if (!targetLevel) return;
@@ -209,27 +208,40 @@ async function deleteRun(levelId, runIndex) {
   let updatedRuns = [...(targetLevel.runs || [])];
   updatedRuns.splice(runIndex, 1);
 
-  // Recalculate best after deletion
-  let newBest = targetLevel.initialBest || 0;
+  // Recalculate true best from initialBest + remaining runs
+  let highestBest = targetLevel.initialBest !== undefined ? targetLevel.initialBest : 0;
   updatedRuns.forEach(r => {
-    if (r.end > newBest) newBest = r.end;
+    if (r.end > highestBest) highestBest = r.end;
   });
 
   if (currentUser) {
     const levelRef = doc(db, "levels", levelId);
     await updateDoc(levelRef, {
       runs: updatedRuns,
-      best: newBest
+      best: highestBest
     });
   } else {
     targetLevel.runs = updatedRuns;
-    targetLevel.best = newBest;
+    targetLevel.best = highestBest;
     saveLocalLevels(activeLevels);
     renderLevels(activeLevels);
   }
 }
 
-// Open Modal for Editing Run
+// Delete Whole Level Handler
+async function deleteLevel(levelId) {
+  if (!confirm("Are you sure you want to delete this level and all its runs?")) return;
+
+  if (currentUser) {
+    await deleteDoc(doc(db, "levels", levelId));
+  } else {
+    let local = JSON.parse(localStorage.getItem("gd_levels") || "[]");
+    local = local.filter(l => l.id !== levelId);
+    saveLocalLevels(local);
+    loadLocalLevels();
+  }
+}
+
 function openEditRunModal(levelId, runIndex) {
   selectedLevelId = levelId;
   editingRunIndex = runIndex;
@@ -313,10 +325,15 @@ function renderLevels(levels) {
         <div class="card-best-badge">${lvl.best}% BEST</div>
       </div>
       <div class="card-body">
-        <h3 class="card-title">${lvl.name}</h3>
+        <div class="card-header-row">
+          <h3 class="card-title">${lvl.name}</h3>
+          <button class="btn-delete-level" title="Delete Level">🗑️ Delete Level</button>
+        </div>
         <p class="card-creator">By ${lvl.creator}</p>
       </div>
     `;
+
+    card.querySelector(".btn-delete-level").addEventListener("click", () => deleteLevel(lvl.id));
 
     const cardBody = card.querySelector(".card-body");
     cardBody.appendChild(runsListContainer);

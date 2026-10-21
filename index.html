@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geometry Dash Level Progress Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <div class="gd-icon"></div>
+      <h1>GD LEVEL PROGRESS TRACKER</h1>
+    </div>
+    <div class="auth-status">
+      <span id="user-display">Guest Mode</span>
+      <button id="auth-btn" class="btn btn-primary">Sign In / Sign Up</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="top-controls">
+      <h2>My Level Tracker</h2>
+      <button id="add-level-btn" class="btn btn-success">+ Add New Level</button>
+    </div>
+
+    <div id="levels-grid" class="levels-grid">
+      <!-- Level cards will render here dynamically -->
+    </div>
+  </main>
+
+  <!-- Level Modal -->
+  <div id="level-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-level-modal">&times;</span>
+      <h3 id="modal-title">Add New Level</h3>
+      <form id="level-form">
+        <label>Level Name</label>
+        <input type="text" id="level-name" required placeholder="e.g. Bloodbath" />
+
+        <label>Creator</label>
+        <input type="text" id="level-creator" placeholder="e.g. Riot" />
+
+        <label>Image URL (Thumbnail)</label>
+        <input type="url" id="level-image" placeholder="https://example.com/image.jpg" />
+
+        <label>Current Overall Best (%)</label>
+        <input type="number" id="level-best" min="0" max="100" value="0" required />
+
+        <button type="submit" class="btn btn-success">Save Level</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Run Log Modal -->
+  <div id="run-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-run-modal">&times;</span>
+      <h3 id="run-modal-title">Log Run</h3>
+      
+      <div class="run-mode-toggle">
+        <button id="mode-full-btn" class="btn btn-tab active">Full Run (0% - X%)</button>
+        <button id="mode-segment-btn" class="btn btn-tab">Segment Practice (X% - Y%)</button>
+      </div>
+
+      <form id="run-form">
+        <div id="start-percent-group" class="hidden">
+          <label>Start Percentage (%)</label>
+          <input type="number" id="run-start" min="0" max="100" value="0" />
+        </div>
+
+        <label id="end-percent-label">End Percentage / Best Run (%)</label>
+        <input type="number" id="run-end" min="0" max="100" required placeholder="e.g. 61 or 83" />
+
+        <label>Run Note / Milestone Goal (Optional)</label>
+        <input type="text" id="run-note" placeholder="e.g. New record! or Practice 44-83" />
+
+        <button type="submit" class="btn btn-primary">Log Run</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-auth-modal">&times;</span>
+      <h3>Account Login / Sign Up</h3>
+      <form id="auth-form">
+        <label>Email</label>
+        <input type="email" id="auth-email" required placeholder="your@email.com" />
+
+        <label>Password</label>
+        <input type="password" id="auth-password" required placeholder="••••••••" />
+
+        <div class="auth-actions">
+          <button type="button" id="login-btn" class="btn btn-primary">Log In</button>
+          <button type="button" id="signup-btn" class="btn btn-secondary">Sign Up</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase & App Script -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -19,6 +19,8 @@ header {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 4px 20px rgba(0, 242, 254, 0.15);
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .logo-container {
@@ -41,6 +43,18 @@ h1 {
   letter-spacing: 2px;
   color: #00f2fe;
   text-transform: uppercase;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .container {
@@ -90,7 +104,22 @@ h1 {
   color: #fff;
 }
 
+.btn-secondary:hover {
+  background: #475569;
+}
+
 .btn-danger {
+  background: #ff4b4b;
+  color: #fff;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  border: 1px solid #ff4b4b;
+  color: #ff4b4b;
+}
+
+.btn-danger-outline:hover {
   background: #ff4b4b;
   color: #fff;
 }
@@ -155,9 +184,30 @@ h1 {
   padding: 1.2rem;
 }
 
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
 .card-title {
   font-size: 1.4rem;
   color: #f8fafc;
+}
+
+.btn-delete-level {
+  background: transparent;
+  border: none;
+  color: #ff4b4b;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.btn-delete-level:hover {
+  opacity: 1;
 }
 
 .card-creator {
@@ -259,6 +309,12 @@ h1 {
   position: relative;
 }
 
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
 .close-btn {
   position: absolute;
   top: 10px;
@@ -275,12 +331,13 @@ form {
   margin-top: 1rem;
 }
 
-input {
+input, textarea {
   padding: 0.7rem;
   border-radius: 6px;
   border: 1px solid #334155;
   background: #0f172a;
   color: #fff;
+  resize: vertical;
 }
 
 .run-mode-toggle {
@@ -292,24 +349,4 @@ input {
 .auth-actions {
   display: flex;
   gap: 10px;
-}
-.card-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.btn-delete-level {
-  background: transparent;
-  border: none;
-  color: #ff4b4b;
-  cursor: pointer;
-  font-size: 1.1rem;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.btn-delete-level:hover {
-  opacity: 1;
 }
